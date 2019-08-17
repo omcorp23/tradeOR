@@ -1,5 +1,5 @@
 
 from binance.client import Client
-api_key = "UyIq7e10odu7wjn2GgHURvIV8ns00nsJiaYnyOVpuTcLUWCvmyGiC8hW9awneZIw"
-api_secret = "SPkcc4UdZWqXTVvzNHsQHYRX6kjh6edrOXQOhSRn0fdGZLRK4zgL3XNzd9Zix5Ru"
+api_key = "0j8EtlQ1cdhm31H1BCWpCix7OaXGou1snrPjssBr515TOF5vhfDINNxjRN4qblox"
+api_secret = "qoVISOWPsyChAEukRo42T4ARGmEcNGUCzFGOp3rZIexIzBzbduTvNjZu0R2zD1MZ"
 client = Client(api_key, api_secret)
