@@ -1,0 +1,3 @@
+Welcome to the Binance Arbitrage Crypto Trader Bot Python Script!
+Bot Start Time: 2019-11-28 21:24:33.002551
+
