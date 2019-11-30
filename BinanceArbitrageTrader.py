@@ -140,14 +140,10 @@ def find_best_arbitrages(triangles, index_map, tickers, client):
             rate2 = float(tickers[index_map[triangle[1]]]['bidPrice'])*float(tickers[index_map[triangle[2]]]['bidPrice'])
             if round(rate1, 7) == 0:
                 continue
-
             return_rate = (rate2-rate1)/(rate1)*100.0 - transaction_fee*2
-
             if return_rate > max_return_rate:
                 max_return_rate = return_rate
                 print("Maximum: " + str(max_return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
-            #if return_rate > 0:
-        print("WINNN!" + str(return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
         max_return_list = np.append(max_return_list, max_return_rate)
         time_list = np.append(time_list, iteration)
         iteration += 1
