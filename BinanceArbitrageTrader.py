@@ -12,7 +12,10 @@ from collections import defaultdict
 from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import logging, traceback
+
+
 
 '''
 Main function
@@ -136,6 +139,7 @@ def find_best_arbitrages(triangles, index_map, client):
     max_return_list = np.array([])
     time_list = np.array([])
     iteration = 0
+    matplotlib.interactive(True)
     while True:
         tickers = client.get_orderbook_tickers()
         for triangle in triangles:
@@ -150,30 +154,16 @@ def find_best_arbitrages(triangles, index_map, client):
                 max_return_list = np.append(max_return_list, return_rate)
                 time_list = np.append(time_list, iteration)
                 iteration += 1
+
                 plt.plot(time_list, max_return_list, 'b-*')
                 plt.xlabel("Time (Seconds)", fontweight="bold")
                 plt.ylabel("Return Rate (%)", fontweight="bold")
                 plt.title("Triangular Arbitrage Live Return Rate", fontweight="bold")
                 plt.show()
-                plt.grid()
                 plt.pause(0.0001)
                 time.sleep(1)
-                plt.grid()
 
-        '''    
-        max_return_list = np.append(max_return_list, max_return_rate)
-        time_list = np.append(time_list, iteration)
-        iteration += 1
-        plt.plot(time_list, max_return_list,'b-*')
-        plt.xlabel("Time (Seconds)", fontweight="bold")
-        plt.ylabel("Net Return (%)", fontweight="bold")
-        plt.title("Triangular Arbitrage Live Return Rate", fontweight="bold")
-        plt.show()
-        plt.grid()
-        plt.pause(0.0001)
-        time.sleep(1)
-        plt.grid()
-        '''
+
 '''
 Get the prices of each two optional coins - maybe we will not use it
 '''
@@ -195,6 +185,12 @@ def get_prices(primary):
             prepared[primary][secondary] = 1/ask
             prepared[secondary][primary] = bid
     return prepared
+
+
+
+def animate(xs, ys, ax1):
+    ax1.clear()
+    ax1.plot(xs, ys)
 
 
 if __name__ == "__main__":
