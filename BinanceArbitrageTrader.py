@@ -12,23 +12,30 @@ from collections import defaultdict
 from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
+import logging, sys, traceback
 
 '''
 Main function
 '''
+
+
 def run():
     # Set Binance time - TODO
 
     # Define client
     api_key = projectBinanceKey['api_key']
     api_secret = projectBinanceKey['api_secret']
-    client = Client(api_key, api_secret)
+    try:
+        client = Client(api_key, api_secret)
 
-    # Initialize Arbitrage Binance Bot
-    arb_triangles, conversion_to_index, conversions = initializeArb(client)
+        # Initialize Arbitrage Binance Bot
+        arb_triangles, conversion_to_index, conversions = initializeArb(client)
 
-    # Perform Arbitrage Function - TODO - this function doesn't ready yet
-    find_best_arbitrages(arb_triangles, conversion_to_index, conversions, client)
+        # Perform Arbitrage Function - TODO - this function doesn't ready yet
+        find_best_arbitrages(arb_triangles, conversion_to_index, conversions, client)
+    except Exception as ex:
+        traceback.print_exc() #Prints error to console
+        logging.exception("Caught an error:") #Write error to log
 
     # Data Output (log) in a text file - keep track of start/end time, trades, balance
 
@@ -40,13 +47,15 @@ def run():
 '''
 Initialize the arbitrage: build coins data structure
 '''
+
+
 def initializeArb(client):
 
     welcome_message = "Welcome to the Binance Arbitrage Crypto Trader Bot Python Script!\n"
     bot_start_time = str(datetime.now())
     welcome_message += "Bot Start Time: {}\n\n".format(bot_start_time)
     print(welcome_message)
-    write_to_log_file(welcome_message)
+    logging.info(welcome_message)
     time.sleep(1)
 
     # Get dictionary of all optional prices
@@ -61,6 +70,8 @@ def initializeArb(client):
 '''
 Build map of coins and their index
 '''
+
+
 def get_symbol_to_index(tickers):
     map_symbol_to_index = {}
     for i in range(0, len(tickers)):
@@ -71,6 +82,8 @@ def get_symbol_to_index(tickers):
 '''
 Build data structure of all potential triangle coins
 '''
+
+
 def get_potential_arbitrages(symbols, tickers):
     triangles = []
 
@@ -109,6 +122,8 @@ def get_potential_arbitrages(symbols, tickers):
 Find the arbitrage triangular coins that have profit
 TODO - should change this function according to 'BinanceTriArbTrader.py' script
 '''
+
+
 def find_best_arbitrages(triangles, index_map, tickers, client):
     transaction_fee = 0.1
     max_return_list = np.array([])
@@ -131,7 +146,8 @@ def find_best_arbitrages(triangles, index_map, tickers, client):
             if return_rate > max_return_rate:
                 max_return_rate = return_rate
                 print("Maximum: " + str(max_return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
-
+            #if return_rate > 0:
+        print("WINNN!" + str(return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
         max_return_list = np.append(max_return_list, max_return_rate)
         time_list = np.append(time_list, iteration)
         iteration += 1
@@ -145,10 +161,11 @@ def find_best_arbitrages(triangles, index_map, tickers, client):
         time.sleep(1)
         plt.grid()
 
-
 '''
 Get the prices of each two optional coins - maybe we will not use it
 '''
+
+
 def get_prices(primary):
     client = Client(None, None)
     prices = client.get_orderbook_tickers()
@@ -167,13 +184,6 @@ def get_prices(primary):
     return prepared
 
 
-'''
-Write message to log file
-'''
-def write_to_log_file(message):
-    with open('CryptoTriArbBot_DataLog.txt', 'a+') as f:
-        f.write(message)
-
-
 if __name__ == "__main__":
+    logging.basicConfig(filename='Trader.log', level=logging.DEBUG, filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
     run()
