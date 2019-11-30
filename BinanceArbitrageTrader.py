@@ -12,7 +12,7 @@ from collections import defaultdict
 from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
-import logging, sys, traceback
+import logging, traceback
 
 '''
 Main function
@@ -29,13 +29,20 @@ def run():
         client = Client(api_key, api_secret)
 
         # Initialize Arbitrage Binance Bot
-        arb_triangles, conversion_to_index, conversions = initializeArb(client)
+        arb_triangles, conversion_to_index, conversions = initialize_arb(client)
 
-        # Perform Arbitrage Function - TODO - this function doesn't ready yet
-        find_best_arbitrages(arb_triangles, conversion_to_index, conversions, client)
-    except Exception as ex:
-        traceback.print_exc() #Prints error to console
-        logging.exception("Caught an error:") #Write error to log
+    except Exception: # TODO : handle Exceptions better
+        traceback.print_exc()  # Prints error to console
+        logging.exception("Caught an error:")  # Write error to log
+
+        # Perform Arbitrage Function - TODO - this function is not ready yet
+    while(1):
+        try:
+            find_best_arbitrages(arb_triangles, conversion_to_index, client)
+        except Exception:
+            print("\nCaught an error:\n" + str(traceback.print_exc()))  # Prints error to console
+            logging.exception("Caught an error:")  # Write error to log
+            time.sleep(1)
 
     # Data Output (log) in a text file - keep track of start/end time, trades, balance
 
@@ -49,7 +56,7 @@ Initialize the arbitrage: build coins data structure
 '''
 
 
-def initializeArb(client):
+def initialize_arb(client):
 
     welcome_message = "Welcome to the Binance Arbitrage Crypto Trader Bot Python Script!\n"
     bot_start_time = str(datetime.now())
@@ -124,26 +131,36 @@ TODO - should change this function according to 'BinanceTriArbTrader.py' script
 '''
 
 
-def find_best_arbitrages(triangles, index_map, tickers, client):
+def find_best_arbitrages(triangles, index_map, client):
     transaction_fee = 0.1
     max_return_list = np.array([])
     time_list = np.array([])
-
     iteration = 0
     while True:
         tickers = client.get_orderbook_tickers()
-
-        max_return_rate =  -1000
-
         for triangle in triangles:
             rate1 = float(tickers[index_map[triangle[0]]]['askPrice'])
             rate2 = float(tickers[index_map[triangle[1]]]['bidPrice'])*float(tickers[index_map[triangle[2]]]['bidPrice'])
             if round(rate1, 7) == 0:
                 continue
-            return_rate = (rate2-rate1)/(rate1)*100.0 - transaction_fee*2
-            if return_rate > max_return_rate:
-                max_return_rate = return_rate
-                print("Maximum: " + str(max_return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
+            return_rate = (rate2-rate1)/(rate1)*100.0 - transaction_fee*3
+
+            if return_rate > 0:
+                print("Arbitrage is possible: " + str(return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
+                max_return_list = np.append(max_return_list, return_rate)
+                time_list = np.append(time_list, iteration)
+                iteration += 1
+                plt.plot(time_list, max_return_list, 'b-*')
+                plt.xlabel("Time (Seconds)", fontweight="bold")
+                plt.ylabel("Return Rate (%)", fontweight="bold")
+                plt.title("Triangular Arbitrage Live Return Rate", fontweight="bold")
+                plt.show()
+                plt.grid()
+                plt.pause(0.0001)
+                time.sleep(1)
+                plt.grid()
+
+        '''    
         max_return_list = np.append(max_return_list, max_return_rate)
         time_list = np.append(time_list, iteration)
         iteration += 1
@@ -156,7 +173,7 @@ def find_best_arbitrages(triangles, index_map, tickers, client):
         plt.pause(0.0001)
         time.sleep(1)
         plt.grid()
-
+        '''
 '''
 Get the prices of each two optional coins - maybe we will not use it
 '''
