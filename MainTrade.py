@@ -17,7 +17,7 @@ def initMarkets():
 
 def run():
     # Initialize big and small markets
-    small_market = Market.Market("bitbay")
+    small_market = Market.Market("bitfinex")
     big_market = Market.Market("binance")
     # Set the trading window and candle times
     trading_window = TradingWindow.TradingWindow()
@@ -28,7 +28,7 @@ def run():
     big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame, big_market.exchange.parse8601(trading_window.start_time))
     print(big_market.ohlcv)
 
-    small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USDC', trading_window.candle_time_frame,
+    small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
                                                        small_market.exchange.parse8601(trading_window.start_time))
     print(small_market.ohlcv)
 
