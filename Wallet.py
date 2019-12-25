@@ -6,7 +6,7 @@ import datetime
 class Wallet:
     def __init__(self):
         self.assets = {} # Dict of 'symbol' and amount - represent our assets
-        self.fees = [] # Dict of 'symbol', amount and time - represent the fees paid
+        self.fees = [] # Array of 'symbol', amount and time - represent the fees paid
         self.logger = logging.getLogger('MainTrade.log')
         self.logger.info("Wallet created empty")
 
