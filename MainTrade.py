@@ -1,6 +1,7 @@
 import ccxt
 import logging
-import Market
+from Market import Market
+from Wallet import Wallet
 import TradingWindow
 import plotly.graph_objs as go
 from plotly.offline import plot
@@ -68,10 +69,10 @@ def plot_data(big_market, small_market):
     plot(fig, filename='tmp.html')
 
 
-def run():
+def run(wallet):
     # Initialize big and small markets
-    small_market = Market.Market("bitfinex")
-    big_market = Market.Market("binance")
+    small_market = Market("bitfinex")
+    big_market = Market("binance")
     # Set the trading window and candle times
     trading_window = TradingWindow.TradingWindow()
 
@@ -95,6 +96,8 @@ def run():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='MainTrade.log', level=logging.DEBUG, filemode='w',
+    logger = logging.basicConfig(filename='MainTrade.log', level=logging.DEBUG, filemode='w',
                         format='%(asctime)s - %(levelname)s - %(message)s')
-    run()
+    # Wallet in a singleton - only instance is created here:
+    wallet = Wallet()
+    run(wallet)

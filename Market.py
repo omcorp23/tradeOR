@@ -2,7 +2,7 @@ import Keys
 import ccxt
 
 
-class Market:
+class Market(object):
     def __init__(self, name):
         self.name = name
         exchange_class = getattr(ccxt, self.name)
@@ -20,10 +20,3 @@ class Market:
         self.ohlcv = None
         self.ma_fast = None
         self.ma_slow = None
-
-def main():
-    Market('bitfinex')
-
-
-if __name__ == "__main__":
-    main()
