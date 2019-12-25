@@ -98,6 +98,6 @@ def run(wallet):
 if __name__ == "__main__":
     logger = logging.basicConfig(filename='MainTrade.log', level=logging.DEBUG, filemode='w',
                         format='%(asctime)s - %(levelname)s - %(message)s')
-    # Wallet in a singleton - only instance is created here:
+    # Wallet is a singleton - only instance is created here:
     wallet = Wallet()
     run(wallet)
