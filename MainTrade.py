@@ -7,27 +7,68 @@ import plotly.graph_objs as go
 from plotly.offline import plot
 from pyti.smoothed_moving_average import smoothed_moving_average as sma
 
-'''
-Main function
+
 '''
 
 '''
-def initMarkets():
-    ccxt.exchanges
-    small_market = Market("bitbay")
-    big_market = Market("binance")
-    return small_market, big_market
+
+
+def plot_data_for_prediction(big_market, small_market):
+
+    # define candles and find the gap
+    small_candles = small_market.ohlcv
+    big_candles = big_market.ohlcv
+    small_open = [item[1] for item in small_candles]
+    big_open = [item[1] for item in big_candles]
+    sub = [small-big for small, big in zip(small_open, big_open)]
+    gap = sum(sub)/len(sub)
+
+    # candles of the small market
+    candle = go.Candlestick(
+        x=[small_market.exchange.iso8601(item[0]) for item in small_candles],
+        open=[item[1]-gap for item in small_candles],
+        close=[item[4]-gap for item in small_candles],
+        high=[item[2]-gap for item in small_candles],
+        low=[item[3]-gap for item in small_candles],
+        name="Candlesticks - small"
+    )
+
+    # moving averages of the big market
+    big_market.ma_fast = sma([item[4] for item in big_candles], 10)
+    big_market.ma_slow = sma([item[4] for item in big_candles], 30)
+
+    fsma = go.Scatter(
+        x=[big_market.exchange.iso8601(item[0]) for item in big_candles],
+        y=big_market.ma_fast,
+        name="Fast SMA - big",
+        line=dict(color=('rgba(102, 207, 255, 50)')))
+
+    ssma = go.Scatter(
+        x=[big_market.exchange.iso8601(item[0]) for item in big_candles],
+        y=big_market.ma_slow,
+        name="Slow SMA - big",
+        line=dict(color=('rgba(255, 207, 102, 50)')))
+
+    # style and display
+    data = [candle, ssma, fsma]
+    layout = go.Layout(title='BTC/USD')
+    fig = go.Figure(data=data, layout=layout)
+    plot(fig, filename='predictingMarket.html')
+
+
+'''
+
 '''
 
 
 def plot_data(big_market, small_market):
     small_candles = small_market.ohlcv
-    candle  = go.Candlestick(
+    candle = go.Candlestick(
         x=[small_market.exchange.iso8601(item[0]) for item in small_candles],
-        open=[item[1] for item in small_candles],
-        close=[item[4] for item in small_candles],
-        high=[item[2] for item in small_candles],
-        low=[item[3] for item in small_candles],
+        open=[item[1] - 47 for item in small_candles],
+        close=[item[4] - 47 for item in small_candles],
+        high=[item[2] - 47 for item in small_candles],
+        low=[item[3] - 47 for item in small_candles],
         name="Candlesticks - small"
     )
 
@@ -78,8 +119,6 @@ def plot_data(big_market, small_market):
         mode="markers",
     )
 
-
-
     data = [candle, candle2, ssma, fsma, buys]
     # style and display
     layout = go.Layout(title='BTCUSD')
@@ -87,15 +126,24 @@ def plot_data(big_market, small_market):
     plot(fig, filename='tmp.html')
 
 
+'''
+The algorithm
+'''
+
+
 def run(wallet):
+
     # Initialize big and small markets
     wallet.add_asset('USD', 100)
     small_market = Market("bitfinex")
     big_market = Market("binance")
+
     # Set the trading window and candle times
     trading_window = TradingWindow.TradingWindow()
 
-    coins = ['BTC/USD'] # TODO: get all coins relevant for this
+    # TODO: get all coins relevant for this
+    coins = ['BTC/USD']
+
     # Extract candles
     big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
                                                        big_market.exchange.parse8601(trading_window.start_time),
@@ -105,7 +153,14 @@ def run(wallet):
                                                            1000)
     # TODO: Extract graph of the 2 markets
     plot_data(big_market, small_market)
+    plot_data_for_prediction(big_market, small_market)
+
     # TODO: check if there is a following pattern
+
+
+'''
+Main function
+'''
 
 
 if __name__ == "__main__":

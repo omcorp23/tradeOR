@@ -149,14 +149,14 @@ def find_best_arbitrages(triangles, index_map, client):
                 continue
             return_rate = (rate2-rate1)/(rate1)*100.0 - transaction_fee*3
 
-            if return_rate > 0:
+            if return_rate > -0.4:
                 print("Arbitrage is possible: " + str(return_rate) + "% arbitrage from " + triangle[1] + "->" + triangle[2])
                 max_return_list = np.append(max_return_list, return_rate)
                 time_list = np.append(time_list, iteration)
                 iteration += 1
 
                 plt.plot(time_list, max_return_list, 'b-*')
-                plt.xlabel("Time (Seconds)", fontweight="bold")
+                plt.xlabel("Iteration", fontweight="bold")
                 plt.ylabel("Return Rate (%)", fontweight="bold")
                 plt.title("Triangular Arbitrage Live Return Rate", fontweight="bold")
                 plt.show()
