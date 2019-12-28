@@ -19,6 +19,8 @@ class Wallet:
         self.logger.info("fee of " + str(amount) + " " + symbol +" paid")
 
     def add_asset(self, symbol, amount):
-        [am, tm] = self.assets[symbol]
+        am = 0
+        if symbol in self.assets.keys():
+            [am, tm] = self.assets[symbol]
         self.assets[symbol] = [am + amount, datetime.datetime.now()]
         self.logger.info("added " + str(amount) + " " + symbol + " to wallet")

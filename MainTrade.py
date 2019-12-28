@@ -62,7 +62,25 @@ def plot_data(big_market, small_market):
         name="Slow SMA",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-    data = [candle, candle2, ssma, fsma]
+
+    # Buy signals TODO: Move to other function
+    factor = 100 # Factor that represent the price difference between markets
+    difference = 0.012 # difference between big market's MA and small market in percentage
+    buy_signals = []
+    for i in range(1, len(small_candles)):
+        if big_market.ma_fast[i] > (small_candles[i][3] - factor):
+            if (big_market.ma_fast[i] - (small_candles[i][3] - factor)) > (difference * (small_candles[i][3] - factor)):
+                buy_signals.append([small_candles[i][0], small_candles[i][3]])
+    buys = go.Scatter(
+        x=[item[0] for item in buy_signals],
+        y=[item[1] for item in buy_signals],
+        name="Buy Signals",
+        mode="markers",
+    )
+
+
+
+    data = [candle, candle2, ssma, fsma, buys]
     # style and display
     layout = go.Layout(title='BTCUSD')
     fig = go.Figure(data=data, layout=layout)
@@ -71,6 +89,7 @@ def plot_data(big_market, small_market):
 
 def run(wallet):
     # Initialize big and small markets
+    wallet.add_asset('USD', 100)
     small_market = Market("bitfinex")
     big_market = Market("binance")
     # Set the trading window and candle times
@@ -81,18 +100,12 @@ def run(wallet):
     big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
                                                        big_market.exchange.parse8601(trading_window.start_time),
                                                        1000)
-    print(big_market.ohlcv)
-
     small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
                                                        small_market.exchange.parse8601(trading_window.start_time),
                                                            1000)
-    print(small_market.ohlcv)
-
     # TODO: Extract graph of the 2 markets
     plot_data(big_market, small_market)
     # TODO: check if there is a following pattern
-
-
 
 
 if __name__ == "__main__":

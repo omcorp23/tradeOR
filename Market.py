@@ -18,5 +18,6 @@ class Market(object):
         except (ccxt.ExchangeError, ccxt.AuthenticationError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as error:
             print('Got an error while creating Market', type(error).__name__, error.args)
         self.ohlcv = None
+        self.rates = None
         self.ma_fast = None
         self.ma_slow = None
