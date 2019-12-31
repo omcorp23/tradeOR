@@ -49,8 +49,49 @@ def plot_data_for_prediction(big_market, small_market):
         name="Slow SMA - big",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
+    # Buy signals TODO: Move to other function
+    difference = 1.05  # difference between big market's MA and small market in percentage
+    buy_signals = []
+    sell_signals = []
+    above_ma = False
+    bought = False
+    last_buy_price = 0
+    if big_market.ma_fast[1] < (small_candles[1][3] - gap):
+        above_ma = True
+
+    for i in range(2, len(small_candles)):
+        if big_market.ma_fast[i] < (small_candles[i][3] - gap):
+            if not above_ma:
+                above_ma = True
+                bought = True
+                buy_signals.append([small_candles[i][0], small_candles[i][3]])
+                last_buy_price = small_candles[i][3]
+        elif big_market.ma_fast[i] > (small_candles[i][3] - gap):
+            if above_ma and bought and ((small_candles[i][3] - gap) > last_buy_price * difference):
+                bought = False
+                sell_signals.append([small_candles[i][0], small_candles[i][3]])
+                above_ma = False
+
+
+    # TODO: Move to other funtion\ class\ whatever
+    buys = go.Scatter(
+        x=[item[0] for item in buy_signals],
+        y=[item[1] for item in buy_signals],
+        name="Buy Signals",
+        mode="markers",
+        marker_size=10,
+        marker_color='rgba(247, 202, 24, 1)',
+    )
+    sells = go.Scatter(
+        x=[item[0] for item in sell_signals],
+        y=[item[1]  for item in sell_signals],
+        name="Sell Signals",
+        mode="markers",
+        marker_size=10,
+    )
+
     # style and display
-    data = [candle, ssma, fsma]
+    data = [candle, fsma, buys, sells]
     layout = go.Layout(title='BTC/USD')
     fig = go.Figure(data=data, layout=layout)
     plot(fig, filename='predictingMarket.html')
@@ -65,10 +106,10 @@ def plot_data(big_market, small_market):
     small_candles = small_market.ohlcv
     candle = go.Candlestick(
         x=[small_market.exchange.iso8601(item[0]) for item in small_candles],
-        open=[item[1] - 47 for item in small_candles],
-        close=[item[4] - 47 for item in small_candles],
-        high=[item[2] - 47 for item in small_candles],
-        low=[item[3] - 47 for item in small_candles],
+        open=[item[1] for item in small_candles],
+        close=[item[4] for item in small_candles],
+        high=[item[2] for item in small_candles],
+        low=[item[3] for item in small_candles],
         name="Candlesticks - small"
     )
 
@@ -103,23 +144,7 @@ def plot_data(big_market, small_market):
         name="Slow SMA",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-
-    # Buy signals TODO: Move to other function
-    factor = 100 # Factor that represent the price difference between markets
-    difference = 0.012 # difference between big market's MA and small market in percentage
-    buy_signals = []
-    for i in range(1, len(small_candles)):
-        if big_market.ma_fast[i] > (small_candles[i][3] - factor):
-            if (big_market.ma_fast[i] - (small_candles[i][3] - factor)) > (difference * (small_candles[i][3] - factor)):
-                buy_signals.append([small_candles[i][0], small_candles[i][3]])
-    buys = go.Scatter(
-        x=[item[0] for item in buy_signals],
-        y=[item[1] for item in buy_signals],
-        name="Buy Signals",
-        mode="markers",
-    )
-
-    data = [candle, candle2, ssma, fsma, buys]
+    data = [candle, candle2, ssma, fsma]
     # style and display
     layout = go.Layout(title='BTCUSD')
     fig = go.Figure(data=data, layout=layout)
@@ -129,7 +154,10 @@ def plot_data(big_market, small_market):
 '''
 The algorithm
 '''
-
+# TODO General:
+# 1) hold indicator for X time back - if the market is very high - don't buy
+# 2) hold few open buys
+# 3) add option to run in real-time
 
 def run(wallet):
 
@@ -139,20 +167,22 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow()
+    trading_window = TradingWindow.TradingWindow(start_time='2019-07-19 00:00:00', candle_time_frame='1h')
 
+    #small_market.rates = small_market.exchange.fetch_ticker()
+    #print(small_market.rates)
     # TODO: get all coins relevant for this
     coins = ['BTC/USD']
 
     # Extract candles
     big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
-                                                       big_market.exchange.parse8601(trading_window.start_time),
-                                                       1000)
+                                                    big_market.exchange.parse8601(trading_window.start_time),
+                                                        1000)
     small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
-                                                       small_market.exchange.parse8601(trading_window.start_time),
-                                                           1000)
+                                                    small_market.exchange.parse8601(trading_window.start_time),
+                                                        1000)
     # TODO: Extract graph of the 2 markets
-    plot_data(big_market, small_market)
+    # plot_data(big_market, small_market)
     plot_data_for_prediction(big_market, small_market)
 
     # TODO: check if there is a following pattern
