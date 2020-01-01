@@ -6,7 +6,7 @@ import TradingWindow
 import plotly.graph_objs as go
 from plotly.offline import plot
 from pyti.smoothed_moving_average import smoothed_moving_average as sma
-
+import itertools
 
 '''
 
@@ -22,6 +22,10 @@ def plot_data_for_prediction(big_market, small_market):
     big_open = [item[1] for item in big_candles]
     sub = [small-big for small, big in zip(small_open, big_open)]
     gap = sum(sub)/len(sub)
+
+    # DEBUG:
+    xsmall = [small_market.exchange.iso8601(item[0]) for item in small_candles]
+    xbig = [big_market.exchange.iso8601(item[0]) for item in big_candles]
 
     # candles of the small market
     candle = go.Candlestick(
@@ -53,15 +57,18 @@ def plot_data_for_prediction(big_market, small_market):
     difference = 1.05  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
+    peak_indicator = small_candles[1][3]
     above_ma = False
     bought = False
     last_buy_price = 0
-    if big_market.ma_fast[1] < (small_candles[1][3] - gap):
+    if big_market.ma_fast[0] < (small_candles[0][3] - gap):
         above_ma = True
 
-    for i in range(2, len(small_candles)):
+    for i in range(1, len(small_candles)):
+        if i%50 == 0:
+            peak_indicator = (peak_indicator + small_candles[i][3])/2
         if big_market.ma_fast[i] < (small_candles[i][3] - gap):
-            if not above_ma:
+            if (not above_ma) and (not bought) and (small_candles[i][3] < peak_indicator):
                 above_ma = True
                 bought = True
                 buy_signals.append([small_candles[i][0], small_candles[i][3]])
@@ -159,6 +166,10 @@ The algorithm
 # 2) hold few open buys
 # 3) add option to run in real-time
 
+def flatten(ohlcv):
+    return list(itertools.chain.from_iterable(ohlcv))
+
+
 def run(wallet):
 
     # Initialize big and small markets
@@ -167,20 +178,26 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2019-07-19 00:00:00', candle_time_frame='1h')
+    trading_window = TradingWindow.TradingWindow(start_time='2019-01-01 00:00:00', candle_time_frame='1h', candles_num=1000)
 
     #small_market.rates = small_market.exchange.fetch_ticker()
     #print(small_market.rates)
     # TODO: get all coins relevant for this
     coins = ['BTC/USD']
-
+    big_ohlcv = []
+    small_ohlcv = []
+    num_of_weeks = 15
+    for i in range(1,num_of_weeks):
     # Extract candles
-    big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
-                                                    big_market.exchange.parse8601(trading_window.start_time),
-                                                        1000)
-    small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
-                                                    small_market.exchange.parse8601(trading_window.start_time),
-                                                        1000)
+        big_ohlcv.append(big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
+                                                        big_market.exchange.parse8601(trading_window.start_time),
+                                                            168))
+        small_ohlcv.append(small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
+                                                        small_market.exchange.parse8601(trading_window.start_time),
+                                                            168))
+        trading_window.add_week()
+    big_market.ohlcv = flatten(big_ohlcv)
+    small_market.ohlcv = flatten(small_ohlcv)
     # TODO: Extract graph of the 2 markets
     # plot_data(big_market, small_market)
     plot_data_for_prediction(big_market, small_market)

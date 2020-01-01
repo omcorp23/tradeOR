@@ -1,4 +1,6 @@
 import time
+from datetime import datetime, timedelta
+import dateutil.parser
 
 
 class TradingWindow(object):
@@ -7,3 +9,7 @@ class TradingWindow(object):
         self.end_time = end_time
         self.candle_time_frame = candle_time_frame
         self.candles_num = candles_num
+    def add_week(self):
+        yourdate = dateutil.parser.parse(self.start_time)
+        yourdate = yourdate + timedelta(days=7)
+        self.start_time = yourdate.isoformat()
