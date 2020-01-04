@@ -13,6 +13,39 @@ import itertools
 '''
 
 
+def strategy(small_candles, big_market, gap, num_of_buys=3):
+    # Buy signals TODO: Move to other function
+    difference = 1.08  # difference between big market's MA and small market in percentage
+    buy_signals = []
+    sell_signals = []
+    peak_indicator = small_candles[1][4]
+    above_ma = False
+    bought = False
+    last_buy_price = 0
+    if big_market.ma_fast[0] < (small_candles[0][4] - gap):
+        above_ma = True
+
+    for i in range(1, len(small_candles)):
+        if i % 10 == 0:
+            peak_indicator = (peak_indicator + small_candles[i][4]) / 2
+        if big_market.ma_fast[i] < (small_candles[i][4] - gap):
+            if (not above_ma) and (not bought) and (small_candles[i][4] < peak_indicator):
+                bought = True
+                buy_signals.append([small_candles[i][0], small_candles[i][4]])
+                last_buy_price = small_candles[i][4]
+            above_ma = True
+        elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
+            ma = big_market.ma_fast[i]
+            small_price = small_candles[i][4]
+            our_gap = gap
+            if above_ma and bought:
+                if (small_candles[i][4] > (last_buy_price * difference)):
+                    bought = False
+                    sell_signals.append([small_candles[i][0], small_candles[i][4]])
+            above_ma = False
+    return buy_signals, sell_signals
+
+
 def plot_data_for_prediction(big_market, small_market):
 
     # define candles and find the gap
@@ -53,36 +86,7 @@ def plot_data_for_prediction(big_market, small_market):
         name="Slow SMA - big",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-    # Buy signals TODO: Move to other function
-    difference = 1.08  # difference between big market's MA and small market in percentage
-    buy_signals = []
-    sell_signals = []
-    peak_indicator = small_candles[1][4]
-    above_ma = False
-    bought = False
-    last_buy_price = 0
-    if big_market.ma_fast[0] < (small_candles[0][4] - gap):
-        above_ma = True
-
-    for i in range(1, len(small_candles)):
-        if i%10 == 0:
-            peak_indicator = (peak_indicator + small_candles[i][4])/2
-        if big_market.ma_fast[i] < (small_candles[i][4] - gap):
-            if (not above_ma) and (not bought) and (small_candles[i][4] < peak_indicator):
-                bought = True
-                buy_signals.append([small_candles[i][0], small_candles[i][4]])
-                last_buy_price = small_candles[i][4]
-            above_ma = True
-        elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
-            ma = big_market.ma_fast[i]
-            small_price = small_candles[i][4]
-            our_gap = gap
-            if above_ma and bought:
-                if (small_candles[i][4] > (last_buy_price * difference)):
-                    bought = False
-                    sell_signals.append([small_candles[i][0], small_candles[i][4]])
-            above_ma = False
-
+    buy_signals, sell_signals = strategy(small_candles, big_market, gap)
 
     # TODO: Move to other funtion\ class\ whatever
     buys = go.Scatter(
@@ -166,9 +170,12 @@ def plot_data(big_market, small_market):
 The algorithm
 '''
 # TODO General:
-# 1) hold indicator for X time back - if the market is very high - don't buy
+# 1) hold indicator for X time back - if the market is very high - don't buy - DONE
 # 2) hold few open buys
 # 3) add option to run in real-time
+# 4) add support for more than 1000 candles - DONE
+# 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
+# 6) add visual/other way to present how much did we earn
 
 def flatten(ohlcv):
     return list(itertools.chain.from_iterable(ohlcv))
@@ -197,7 +204,7 @@ def run(wallet):
                                                         small_market.exchange.parse8601(trading_window.start_time),
                                                             168)
     trading_window.add_week()
-    num_of_weeks = 55
+    num_of_weeks = 10
     for i in range(1,num_of_weeks):
     # Extract candles
         big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
