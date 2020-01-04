@@ -123,7 +123,7 @@ def plot_data_for_prediction(big_market, small_market):
         name="Slow SMA - big",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-    buy_signals, sell_signals, indicator_plot = strategy(small_candles, big_market, gap)
+    buy_signals, sell_signals, indicator_plot = strategy(small_candles, big_market, gap, 6)
 
     # TODO: Move to other funtion\ class\ whatever
     buys = go.Scatter(
@@ -215,6 +215,7 @@ The algorithm
 # 4) add support for more than 1000 candles - DONE
 # 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
 # 6) add visual/other way to present how much did we earn
+# 7) add mechanism to distance buys 
 
 def flatten(ohlcv):
     return list(itertools.chain.from_iterable(ohlcv))
@@ -228,7 +229,7 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2018-07-10 00:00:00', candle_time_frame='1h', candles_num=1000)
+    trading_window = TradingWindow.TradingWindow(start_time='2018-04-10 00:00:00', candle_time_frame='1h', candles_num=1000)
 
     #small_market.rates = small_market.exchange.fetch_ticker()
     #print(small_market.rates)
@@ -243,7 +244,7 @@ def run(wallet):
                                                         small_market.exchange.parse8601(trading_window.start_time),
                                                             168)
     trading_window.add_week()
-    num_of_weeks = 70
+    num_of_weeks = 80
     for i in range(1,num_of_weeks):
     # Extract candles
         big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
