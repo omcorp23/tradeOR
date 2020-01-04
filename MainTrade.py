@@ -8,11 +8,6 @@ from plotly.offline import plot
 from pyti.smoothed_moving_average import smoothed_moving_average as sma
 import itertools
 
-'''
-
-'''
-
-
 
 def get_id_if_sell(price, open_buys_prices, difference):
     for i in range(0, len(open_buys_prices)):
@@ -159,11 +154,6 @@ def plot_data_for_prediction(big_market, small_market):
     layout = go.Layout(title='BTC/USD')
     fig = go.Figure(data=data, layout=layout)
     plot(fig, filename='predictingMarket.html')
-
-
-'''
-
-'''
 
 
 def plot_data(big_market, small_market):
