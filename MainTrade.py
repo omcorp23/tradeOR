@@ -54,30 +54,34 @@ def plot_data_for_prediction(big_market, small_market):
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
     # Buy signals TODO: Move to other function
-    difference = 1.05  # difference between big market's MA and small market in percentage
+    difference = 1.08  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
-    peak_indicator = small_candles[1][3]
+    peak_indicator = small_candles[1][4]
     above_ma = False
     bought = False
     last_buy_price = 0
-    if big_market.ma_fast[0] < (small_candles[0][3] - gap):
+    if big_market.ma_fast[0] < (small_candles[0][4] - gap):
         above_ma = True
 
     for i in range(1, len(small_candles)):
-        if i%50 == 0:
-            peak_indicator = (peak_indicator + small_candles[i][3])/2
-        if big_market.ma_fast[i] < (small_candles[i][3] - gap):
-            if (not above_ma) and (not bought) and (small_candles[i][3] < peak_indicator):
-                above_ma = True
+        if i%10 == 0:
+            peak_indicator = (peak_indicator + small_candles[i][4])/2
+        if big_market.ma_fast[i] < (small_candles[i][4] - gap):
+            if (not above_ma) and (not bought) and (small_candles[i][4] < peak_indicator):
                 bought = True
-                buy_signals.append([small_candles[i][0], small_candles[i][3]])
-                last_buy_price = small_candles[i][3]
-        elif big_market.ma_fast[i] > (small_candles[i][3] - gap):
-            if above_ma and bought and ((small_candles[i][3] - gap) > last_buy_price * difference):
-                bought = False
-                sell_signals.append([small_candles[i][0], small_candles[i][3]])
-                above_ma = False
+                buy_signals.append([small_candles[i][0], small_candles[i][4]])
+                last_buy_price = small_candles[i][4]
+            above_ma = True
+        elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
+            ma = big_market.ma_fast[i]
+            small_price = small_candles[i][4]
+            our_gap = gap
+            if above_ma and bought:
+                if (small_candles[i][4] > (last_buy_price * difference)):
+                    bought = False
+                    sell_signals.append([small_candles[i][0], small_candles[i][4]])
+            above_ma = False
 
 
     # TODO: Move to other funtion\ class\ whatever
@@ -178,28 +182,38 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2019-01-01 00:00:00', candle_time_frame='1h', candles_num=1000)
+    trading_window = TradingWindow.TradingWindow(start_time='2018-04-10 00:00:00', candle_time_frame='1h', candles_num=1000)
 
     #small_market.rates = small_market.exchange.fetch_ticker()
     #print(small_market.rates)
     # TODO: get all coins relevant for this
     coins = ['BTC/USD']
-    big_ohlcv = []
-    small_ohlcv = []
-    num_of_weeks = 15
+
+    #First week:
+    big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
+                                                        big_market.exchange.parse8601(trading_window.start_time),
+                                                            168)
+    small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
+                                                        small_market.exchange.parse8601(trading_window.start_time),
+                                                            168)
+    trading_window.add_week()
+    num_of_weeks = 55
     for i in range(1,num_of_weeks):
     # Extract candles
-        big_ohlcv.append(big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
+        big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
                                                         big_market.exchange.parse8601(trading_window.start_time),
-                                                            168))
-        small_ohlcv.append(small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
+                                                            168)
+        small_ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
                                                         small_market.exchange.parse8601(trading_window.start_time),
-                                                            168))
+                                                            168)
+        for j in range(0,len(big_ohlcv)):
+            big_market.ohlcv.append(big_ohlcv[j])
+            small_market.ohlcv.append(small_ohlcv[j])
         trading_window.add_week()
-    big_market.ohlcv = flatten(big_ohlcv)
-    small_market.ohlcv = flatten(small_ohlcv)
+    #big_market.ohlcv = big_ohlcv
+    #small_market.ohlcv = small_ohlcv
     # TODO: Extract graph of the 2 markets
-    # plot_data(big_market, small_market)
+    #plot_data(big_market, small_market)
     plot_data_for_prediction(big_market, small_market)
 
     # TODO: check if there is a following pattern
