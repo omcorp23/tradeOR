@@ -47,7 +47,7 @@ def calculate_profit(trades):
     i = 0
     for trade in trades:
         precentage = ((trade[1] - trade[0])/trade[0])*100
-        print("sale number "+ str(i) + " profit in precentage: " + str(precentage))
+        print("sale: "+ str(trade) + " profit in precentage: " + str(precentage))
         i += 1
 
 
@@ -56,7 +56,9 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
     difference = 1.2  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
+    indicator_plot = []
     peak_indicator = small_candles[1][4]
+    indicator_plot.append([small_candles[1][0], small_candles[1][4]])
     above_ma = False
     open_buys = 0
     trade_id = 0
@@ -67,8 +69,9 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
 
     # Strategy:
     for i in range(1, len(small_candles)):
-        if i % 10 == 0:
+        if i % 200 == 0:
             peak_indicator = (peak_indicator + small_candles[i][4]) / 2
+            indicator_plot.append([small_candles[i][0], peak_indicator])
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
             if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
                 open_buys += 1
@@ -86,7 +89,7 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
             above_ma = False
     calculate_profit(trades)
-    return buy_signals, sell_signals
+    return buy_signals, sell_signals, indicator_plot
 
 
 def plot_data_for_prediction(big_market, small_market):
@@ -125,7 +128,7 @@ def plot_data_for_prediction(big_market, small_market):
         name="Slow SMA - big",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-    buy_signals, sell_signals = strategy(small_candles, big_market, gap)
+    buy_signals, sell_signals, indicator_plot = strategy(small_candles, big_market, gap)
 
     # TODO: Move to other funtion\ class\ whatever
     buys = go.Scatter(
@@ -144,8 +147,15 @@ def plot_data_for_prediction(big_market, small_market):
         marker_size=10,
     )
 
+    indicator = go.Scatter(
+        x=[item[0] for item in indicator_plot],
+        y=[item[1] for item in indicator_plot],
+        name="indicator",
+        line=dict(color=('rgba(34, 90, 200, 50)')),
+    )
+
     # style and display
-    data = [candle, fsma, buys, sells]
+    data = [candle, fsma, buys, sells, indicator]
     layout = go.Layout(title='BTC/USD')
     fig = go.Figure(data=data, layout=layout)
     plot(fig, filename='predictingMarket.html')
@@ -210,7 +220,7 @@ The algorithm
 '''
 # TODO General:
 # 1) hold indicator for X time back - if the market is very high - don't buy - DONE
-# 2) hold few open buys
+# 2) hold few open buys - DONE
 # 3) add option to run in real-time
 # 4) add support for more than 1000 candles - DONE
 # 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
@@ -228,7 +238,7 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2018-12-10 00:00:00', candle_time_frame='1h', candles_num=1000)
+    trading_window = TradingWindow.TradingWindow(start_time='2018-07-10 00:00:00', candle_time_frame='1h', candles_num=1000)
 
     #small_market.rates = small_market.exchange.fetch_ticker()
     #print(small_market.rates)
@@ -243,7 +253,7 @@ def run(wallet):
                                                         small_market.exchange.parse8601(trading_window.start_time),
                                                             168)
     trading_window.add_week()
-    num_of_weeks = 40
+    num_of_weeks = 70
     for i in range(1,num_of_weeks):
     # Extract candles
         big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
