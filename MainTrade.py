@@ -13,36 +13,79 @@ import itertools
 '''
 
 
+
+def get_id_if_sell(price, open_buys_prices, difference):
+    for i in range(0, len(open_buys_prices)):
+        if (open_buys_prices[i][0] != -1) and (price > difference*open_buys_prices[i][0]):
+            return open_buys_prices[i][1]
+    return -1
+
+
+def pop_buy(open_buys_prices, id):
+    for i in range(0, len(open_buys_prices)):
+        if open_buys_prices[i][1] == id:
+            price = open_buys_prices[i][0]
+            open_buys_prices[i] = [-1, 0]
+    return  price
+
+
+def add_open_buy(price, open_buys_prices, trade_id):
+    for j in range(0, len(open_buys_prices)):  # Insert buy to open_buys
+        if open_buys_prices[j][0] == -1:
+            open_buys_prices[j] = [price, trade_id]
+            break
+
+
+def init_open_buys(num_of_buys):
+    a = []
+    for j in range(0, num_of_buys):
+        a.append([-1, 0])
+    return a
+
+
+def calculate_profit(trades):
+    i = 0
+    for trade in trades:
+        precentage = ((trade[1] - trade[0])/trade[0])*100
+        print("sale number "+ str(i) + " profit in precentage: " + str(precentage))
+        i += 1
+
+
 def strategy(small_candles, big_market, gap, num_of_buys=3):
-    # Buy signals TODO: Move to other function
-    difference = 1.08  # difference between big market's MA and small market in percentage
+    # Init vars:
+    difference = 1.2  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
     peak_indicator = small_candles[1][4]
     above_ma = False
-    bought = False
-    last_buy_price = 0
+    open_buys = 0
+    trade_id = 0
+    trades = []
+    open_buys_prices = init_open_buys(num_of_buys)
     if big_market.ma_fast[0] < (small_candles[0][4] - gap):
         above_ma = True
 
+    # Strategy:
     for i in range(1, len(small_candles)):
         if i % 10 == 0:
             peak_indicator = (peak_indicator + small_candles[i][4]) / 2
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
-            if (not above_ma) and (not bought) and (small_candles[i][4] < peak_indicator):
-                bought = True
+            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
+                open_buys += 1
+                trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
-                last_buy_price = small_candles[i][4]
+                add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
             above_ma = True
         elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
-            ma = big_market.ma_fast[i]
-            small_price = small_candles[i][4]
-            our_gap = gap
-            if above_ma and bought:
-                if (small_candles[i][4] > (last_buy_price * difference)):
-                    bought = False
+            if above_ma and (open_buys > 0):
+                id = get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
+                if (id != -1):
+                    matching_buy = pop_buy(open_buys_prices, id)
+                    trades.append([matching_buy, small_candles[i][4]])
+                    open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
             above_ma = False
+    calculate_profit(trades)
     return buy_signals, sell_signals
 
 
@@ -55,10 +98,6 @@ def plot_data_for_prediction(big_market, small_market):
     big_open = [item[1] for item in big_candles]
     sub = [small-big for small, big in zip(small_open, big_open)]
     gap = sum(sub)/len(sub)
-
-    # DEBUG:
-    xsmall = [small_market.exchange.iso8601(item[0]) for item in small_candles]
-    xbig = [big_market.exchange.iso8601(item[0]) for item in big_candles]
 
     # candles of the small market
     candle = go.Candlestick(
@@ -189,7 +228,7 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2018-04-10 00:00:00', candle_time_frame='1h', candles_num=1000)
+    trading_window = TradingWindow.TradingWindow(start_time='2018-12-10 00:00:00', candle_time_frame='1h', candles_num=1000)
 
     #small_market.rates = small_market.exchange.fetch_ticker()
     #print(small_market.rates)
@@ -204,7 +243,7 @@ def run(wallet):
                                                         small_market.exchange.parse8601(trading_window.start_time),
                                                             168)
     trading_window.add_week()
-    num_of_weeks = 10
+    num_of_weeks = 40
     for i in range(1,num_of_weeks):
     # Extract candles
         big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
