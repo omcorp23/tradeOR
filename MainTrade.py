@@ -53,15 +53,18 @@ def plot_data_for_prediction(big_market, small_market):
     difference = 1.05  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
+    peak_indicator = small_candles[1][3]
     above_ma = False
     bought = False
     last_buy_price = 0
-    if big_market.ma_fast[1] < (small_candles[1][3] - gap):
+    if big_market.ma_fast[0] < (small_candles[0][3] - gap):
         above_ma = True
 
-    for i in range(2, len(small_candles)):
+    for i in range(1, len(small_candles)):
+        if i % 50 == 0:
+            peak_indicator = (peak_indicator + small_candles[i][3]) / 2
         if big_market.ma_fast[i] < (small_candles[i][3] - gap):
-            if not above_ma:
+            if (not above_ma) and (not bought) and (small_candles[i][3] < peak_indicator):
                 above_ma = True
                 bought = True
                 buy_signals.append([small_candles[i][0], small_candles[i][3]])
