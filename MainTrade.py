@@ -55,6 +55,7 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
     peak_indicator = small_candles[1][4]
     indicator_plot.append([small_candles[1][0], small_candles[1][4]])
     above_ma = False
+    distance_buy_counter = 0
     open_buys = 0
     trade_id = 0
     trades = []
@@ -69,6 +70,10 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
             indicator_plot.append([small_candles[i][0], peak_indicator])
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
             if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
+                if distance_buy_counter != 0 :
+                    distance_buy_counter -= 1
+                    continue
+                distance_buy_counter = 4
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
@@ -215,7 +220,7 @@ The algorithm
 # 4) add support for more than 1000 candles - DONE
 # 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
 # 6) add visual/other way to present how much did we earn
-# 7) add mechanism to distance buys 
+# 7) add mechanism to distance buys - DONE (4 candles diff)
 
 def flatten(ohlcv):
     return list(itertools.chain.from_iterable(ohlcv))
