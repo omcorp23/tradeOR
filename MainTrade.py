@@ -219,7 +219,7 @@ The algorithm
 # 3) add option to run in real-time
 # 4) add support for more than 1000 candles - DONE
 # 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
-# 6) add visual/other way to present how much did we earn
+# 6) add visual/other way to present how much did we earn - right now in print - need something nicer
 # 7) add mechanism to distance buys - DONE (4 candles diff)
 
 def flatten(ohlcv):
