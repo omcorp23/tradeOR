@@ -11,7 +11,7 @@ import itertools
 
 def get_id_if_sell(price, open_buys_prices, difference):
     for i in range(0, len(open_buys_prices)):
-        if (open_buys_prices[i][0] != -1) and (price > difference*open_buys_prices[i][0]):
+        if (open_buys_prices[i][0] != -1) and (price > difference * open_buys_prices[i][0]):
             return open_buys_prices[i][1]
     return -1
 
@@ -21,7 +21,7 @@ def pop_buy(open_buys_prices, id):
         if open_buys_prices[i][1] == id:
             price = open_buys_prices[i][0]
             open_buys_prices[i] = [-1, 0]
-    return  price
+    return price
 
 
 def add_open_buy(price, open_buys_prices, trade_id):
@@ -41,8 +41,8 @@ def init_open_buys(num_of_buys):
 def calculate_profit(trades):
     i = 0
     for trade in trades:
-        precentage = ((trade[1] - trade[0])/trade[0])*100
-        print("sale: "+ str(trade) + " profit in precentage: " + str(precentage))
+        precentage = ((trade[1] - trade[0]) / trade[0]) * 100
+        print("sale: " + str(trade) + " profit in precentage: " + str(precentage))
         i += 1
 
 
@@ -55,7 +55,6 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
     peak_indicator = small_candles[1][4]
     indicator_plot.append([small_candles[1][0], small_candles[1][4]])
     above_ma = False
-    distance_buy_counter = 0
     open_buys = 0
     trade_id = 0
     trades = []
@@ -70,10 +69,6 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
             indicator_plot.append([small_candles[i][0], peak_indicator])
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
             if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
-                if distance_buy_counter != 0 :
-                    distance_buy_counter -= 1
-                    continue
-                distance_buy_counter = 4
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
@@ -93,22 +88,21 @@ def strategy(small_candles, big_market, gap, num_of_buys=3):
 
 
 def plot_data_for_prediction(big_market, small_market):
-
     # define candles and find the gap
     small_candles = small_market.ohlcv
     big_candles = big_market.ohlcv
     small_open = [item[1] for item in small_candles]
     big_open = [item[1] for item in big_candles]
-    sub = [small-big for small, big in zip(small_open, big_open)]
-    gap = sum(sub)/len(sub)
+    sub = [small - big for small, big in zip(small_open, big_open)]
+    gap = sum(sub) / len(sub)
 
     # candles of the small market
     candle = go.Candlestick(
         x=[small_market.exchange.iso8601(item[0]) for item in small_candles],
-        open=[item[1]-gap for item in small_candles],
-        close=[item[4]-gap for item in small_candles],
-        high=[item[2]-gap for item in small_candles],
-        low=[item[3]-gap for item in small_candles],
+        open=[item[1] - gap for item in small_candles],
+        close=[item[4] - gap for item in small_candles],
+        high=[item[2] - gap for item in small_candles],
+        low=[item[3] - gap for item in small_candles],
         name="Candlesticks - small"
     )
 
@@ -128,7 +122,7 @@ def plot_data_for_prediction(big_market, small_market):
         name="Slow SMA - big",
         line=dict(color=('rgba(255, 207, 102, 50)')))
 
-    buy_signals, sell_signals, indicator_plot = strategy(small_candles, big_market, gap, 6)
+    buy_signals, sell_signals, indicator_plot = strategy(small_candles, big_market, gap)
 
     # TODO: Move to other funtion\ class\ whatever
     buys = go.Scatter(
@@ -141,7 +135,7 @@ def plot_data_for_prediction(big_market, small_market):
     )
     sells = go.Scatter(
         x=[item[0] for item in sell_signals],
-        y=[item[1]  for item in sell_signals],
+        y=[item[1] for item in sell_signals],
         name="Sell Signals",
         mode="markers",
         marker_size=10,
@@ -213,14 +207,15 @@ def plot_data(big_market, small_market):
 '''
 The algorithm
 '''
+
+
 # TODO General:
 # 1) hold indicator for X time back - if the market is very high - don't buy - DONE
 # 2) hold few open buys - DONE
 # 3) add option to run in real-time
 # 4) add support for more than 1000 candles - DONE
 # 5) reorg + refactor code!! split code: functions for: strategy, plot etc...
-# 6) add visual/other way to present how much did we earn - right now in print - need something nicer
-# 7) add mechanism to distance buys - DONE (4 candles diff)
+# 6) add visual/other way to present how much did we earn
 
 def flatten(ohlcv):
     return list(itertools.chain.from_iterable(ohlcv))
@@ -234,38 +229,37 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2018-04-10 00:00:00', candle_time_frame='1h', candles_num=1000)
+    trading_window = TradingWindow.TradingWindow(start_time='2018-07-10 00:00:00', candle_time_frame='1h',
+                                                 candles_num=1000)
 
-    #small_market.rates = small_market.exchange.fetch_ticker()
-    #print(small_market.rates)
-    # TODO: get all coins relevant for this
-    coins = ['BTC/USD']
+    # Get atractive coins
+    coins = ['BTC/USD'] # TODO: get all coins relevant for this
 
-    #First week:
+    # First week:
     big_market.ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
-                                                        big_market.exchange.parse8601(trading_window.start_time),
-                                                            168)
+                                                       big_market.exchange.parse8601(trading_window.start_time),
+                                                       168)
     small_market.ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
-                                                        small_market.exchange.parse8601(trading_window.start_time),
-                                                            168)
+                                                           small_market.exchange.parse8601(trading_window.start_time),
+                                                           168)
     trading_window.add_week()
-    num_of_weeks = 80
-    for i in range(1,num_of_weeks):
-    # Extract candles
+    num_of_weeks = 70
+    for i in range(1, num_of_weeks):
+        # Extract candles
         big_ohlcv = big_market.exchange.fetch_ohlcv('BTC/USDT', trading_window.candle_time_frame,
-                                                        big_market.exchange.parse8601(trading_window.start_time),
-                                                            168)
+                                                    big_market.exchange.parse8601(trading_window.start_time),
+                                                    168)
         small_ohlcv = small_market.exchange.fetch_ohlcv('BTC/USD', trading_window.candle_time_frame,
                                                         small_market.exchange.parse8601(trading_window.start_time),
-                                                            168)
-        for j in range(0,len(big_ohlcv)):
+                                                        168)
+        for j in range(0, len(big_ohlcv)):
             big_market.ohlcv.append(big_ohlcv[j])
             small_market.ohlcv.append(small_ohlcv[j])
         trading_window.add_week()
-    #big_market.ohlcv = big_ohlcv
-    #small_market.ohlcv = small_ohlcv
+    # big_market.ohlcv = big_ohlcv
+    # small_market.ohlcv = small_ohlcv
     # TODO: Extract graph of the 2 markets
-    #plot_data(big_market, small_market)
+    # plot_data(big_market, small_market)
     plot_data_for_prediction(big_market, small_market)
 
     # TODO: check if there is a following pattern
@@ -275,10 +269,11 @@ def run(wallet):
 Main function
 '''
 
-
 if __name__ == "__main__":
+    # create log
     logger = logging.basicConfig(filename='MainTrade.log', level=logging.DEBUG, filemode='w',
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+                                 format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Wallet is a singleton - only instance is created here:
     wallet = Wallet()
     run(wallet)
