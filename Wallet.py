@@ -3,6 +3,7 @@ import ccxt
 import logging
 import datetime
 
+
 class Wallet:
     def __init__(self):
         self.assets = {} # Dict of 'symbol' and amount - represent our assets
