@@ -5,7 +5,9 @@ define constants
 # time for candles
 WEEKS_NUM = 70
 HOURS_IN_WEEK = 168
+HOURS_IN_10D = 240
 
 # moving average types
-SIMPLE = 1
-EXPONENTIAL = 2
+SMOOTHED = 1
+SIMPLE = 2
+EXPONENTIAL = 3

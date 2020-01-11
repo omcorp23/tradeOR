@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta
 import dateutil.parser
 
@@ -15,3 +14,10 @@ class TradingWindow(object):
         yourdate = dateutil.parser.parse(self.start_time)
         yourdate = yourdate + timedelta(days=7)
         self.start_time = yourdate.isoformat()
+
+    def set_start_time(self, new_start_time):
+        self.start_time = new_start_time
+
+    def set_candles_num(self, new_candles_num):
+        self.candles_num = new_candles_num
+

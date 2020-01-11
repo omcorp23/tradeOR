@@ -21,3 +21,4 @@ class Market(object):
         self.rates = None
         self.ma_fast = None
         self.ma_slow = None
+        self.ma_curve = None

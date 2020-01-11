@@ -35,6 +35,6 @@ def init_open_buys(num_of_buys):
 def calculate_profit(trades):
     i = 0
     for trade in trades:
-        precentage = ((trade[1] - trade[0]) / trade[0]) * 100
-        print("sale: " + str(trade) + " profit in precentage: " + str(precentage))
+        percentage = ((trade[1] - trade[0]) / trade[0]) * 100
+        print("sale: " + str(trade) + " profit in percentage: " + str(percentage))
         i += 1

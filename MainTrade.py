@@ -4,22 +4,20 @@ from Wallet import Wallet
 import TradingWindow
 import plotly.graph_objs as go
 from plotly.offline import plot
-from pyti.smoothed_moving_average import smoothed_moving_average as sma
+from pyti.simple_moving_average import simple_moving_average as simple_ma
+from pyti.smoothed_moving_average import smoothed_moving_average as smoothed_ma
+from pyti.exponential_moving_average import exponential_moving_average as exponential_ma
 import constant
-import Funcs
-
+import helperFunctions as funcs
+import pandas as pd
 
 # TODO General:
-# 1) hold indicator for X time back - if the market is very high - don't buy - DONE
-# 2) hold few open buys - DONE
-# 3) add option to run in real-time
-# 4) add support for more than 1000 candles - DONE
-# 5) reorg + refactor code!! split code: functions for: strategy, plot etc... - DONE
-# 6) add visual/other way to present how much did we earn
-# 7) change small market because there is no BTC/USD
-# 8) find the relevant coins to trade with, or make it generic after changing the small market
-# 9) try different type of moving average
-# 10) put all plot info in class - not sure it is necessary
+# 1) add option to run in real-time - IN PROCESS
+# 2) add visual/other way to present how much did we earn
+# 3) change small market because there is no BTC/USD
+# 4) find the relevant coins to trade with, or make it generic after changing the small market
+# 5) try different type of moving average - DONE
+# 6) put all plot info in class - not sure it is necessary
 
 
 '''
@@ -103,7 +101,7 @@ def strategy(small_market, big_market, gap, num_of_buys=3):
     open_buys = 0
     trade_id = 0
     trades = []
-    open_buys_prices = Funcs.init_open_buys(num_of_buys)
+    open_buys_prices = funcs.init_open_buys(num_of_buys)
     if big_market.ma_fast[0] < (small_candles[0][4] - gap):
         above_ma = True
 
@@ -117,18 +115,18 @@ def strategy(small_market, big_market, gap, num_of_buys=3):
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
-                Funcs.add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
+                funcs.add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
             above_ma = True
         elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
             if above_ma and (open_buys > 0):
-                id = Funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
+                id = funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
                 if (id != -1):
-                    matching_buy = Funcs.pop_buy(open_buys_prices, id)
+                    matching_buy = funcs.pop_buy(open_buys_prices, id)
                     trades.append([matching_buy, small_candles[i][4]])
                     open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
             above_ma = False
-    Funcs.calculate_profit(trades)
+    funcs.calculate_profit(trades)
     return buy_signals, sell_signals, indicator_plot
 
 
@@ -137,13 +135,14 @@ Calculation of the moving average
 '''
 
 
-def calc_ma(big_market, ma_type):
+def calc_ma(big_market, ma_type, ma_speed):
     # calculate fast and slow simple moving averages of the big market
-    if ma_type == constant.SIMPLE:
-        big_market.ma_fast = sma([item[4] for item in big_market.ohlcv], 10)
-        big_market.ma_slow = sma([item[4] for item in big_market.ohlcv], 30)
+    if ma_type == constant.SMOOTHED:
+        big_market.ma_fast = smoothed_ma([item[4] for item in big_market.ohlcv], ma_speed)
+    elif ma_type == constant.SIMPLE:
+        big_market.ma_fast = simple_ma([item[4] for item in big_market.ohlcv], ma_speed)
     elif ma_type == constant.EXPONENTIAL:
-        print("Should add..")
+        big_market.ma_fast = exponential_ma([item[4] for item in big_market.ohlcv], ma_speed)
 
 
 '''
@@ -206,7 +205,7 @@ def run(wallet):
     gap = calc_gap(small_market, big_market)
 
     # Calculate MA of the big market
-    calc_ma(big_market, constant.SIMPLE)
+    calc_ma(big_market, constant.SIMPLE, 100)
 
     # Find buy and sell points
     buy_signals, sell_signals, indicator_plot = strategy(small_market, big_market, gap)
