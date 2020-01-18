@@ -15,6 +15,11 @@ class TradingWindow(object):
         yourdate = yourdate + timedelta(days=7)
         self.start_time = yourdate.isoformat()
 
+    def add_day(self):
+        yourdate = dateutil.parser.parse(self.start_time)
+        yourdate = yourdate + timedelta(days=1)
+        self.start_time = yourdate.isoformat()
+
     def set_start_time(self, new_start_time):
         self.start_time = new_start_time
 

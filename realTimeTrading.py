@@ -13,6 +13,8 @@ from pyti.smoothed_moving_average import smoothed_moving_average as smoothed_ma
 from pyti.exponential_moving_average import exponential_moving_average as exponential_ma
 import numpy as np
 import helperFunctions as funcs
+import time
+
 
 
 # TODO General:
@@ -26,7 +28,7 @@ Plot the data
 '''
 
 
-def plot_data(big_market, small_market, gap):
+def plot_data(big_market, small_market, gap, buy_signals, sell_signals):
 
     # define small market candles for plotting
     candle = go.Candlestick(
@@ -45,8 +47,32 @@ def plot_data(big_market, small_market, gap):
         name="Fast SMA - big",
         line=dict(color=('rgba(102, 207, 255, 50)')))
 
+    buys = go.Scatter(
+        x=[item[0] for item in buy_signals],
+        y=[item[1] for item in buy_signals],
+        name="Buy Signals",
+        mode="markers",
+        marker_size=10,
+        marker_color='rgba(247, 202, 24, 1)',
+    )
+    sells = go.Scatter(
+        x=[item[0] for item in sell_signals],
+        y=[item[1] for item in sell_signals],
+        name="Sell Signals",
+        mode="markers",
+        marker_size=10,
+    )
+
+    # define the indicator for plotting
+    indicator = go.Scatter(
+        x=[item[0] for item in small_market.indicator_arr],
+        y=[item[1] for item in small_market.indicator_arr],
+        name="indicator",
+        line=dict(color=('rgba(34, 90, 200, 50)')),
+    )
+
     # style and display
-    data = [candle, ma_curve]
+    data = [candle, ma_curve, buys, sells, indicator]
     layout = go.Layout(title='BTC/USD')
     fig = go.Figure(data=data, layout=layout)
     plot(fig, filename='plotData.html')
@@ -60,29 +86,27 @@ Strategy function
 def strategy(small_market, big_market, gap, num_of_buys=3):
 
     # init vars:
+    small_market.indicator_counter += 1
     small_candles = small_market.ohlcv
     difference = 1.2  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
-    indicator_plot = []
-    peak_indicator = small_candles[1][4]
-    indicator_plot.append([small_candles[1][0], small_candles[1][4]])
     above_ma = False
     open_buys = 0
     trade_id = 0
     trades = []
     open_buys_prices = funcs.init_open_buys(num_of_buys)
-    if big_market.ma_curve[0] < (small_candles[0][4] - gap):
+    if big_market.ma_fast[0] < (small_candles[0][4] - gap):
         above_ma = True
 
-    # work on the last candle
-    i = len(small_candles)-1
-    if i > 0:
-        if i % 200 == 0:
-            peak_indicator = (peak_indicator + small_candles[i][4]) / 2
-            indicator_plot.append([small_candles[i][0], peak_indicator])
+    # strategy:
+    for i in range(len(small_candles) - 1, len(small_candles)):
+        if small_market.indicator_counter % 200 == 0:
+            peak_indicator = (small_market.indicator_arr[-1][1] + small_candles[i][4]) / 2
+            small_market.indicator_arr.append([small_candles[i][0], peak_indicator])
         if big_market.ma_curve[i] < (small_candles[i][4] - gap):
-            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
+            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < small_market.indicator_arr[-1][1]):
+                # Buy!
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
@@ -92,13 +116,14 @@ def strategy(small_market, big_market, gap, num_of_buys=3):
             if above_ma and (open_buys > 0):
                 id = funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
                 if (id != -1):
+                    # Sell!
                     matching_buy = funcs.pop_buy(open_buys_prices, id)
                     trades.append([matching_buy, small_candles[i][4]])
                     open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
             above_ma = False
     funcs.calculate_profit(trades)
-    return buy_signals, sell_signals, indicator_plot
+    return buy_signals, sell_signals
 
 
 '''
@@ -106,11 +131,29 @@ Real time trading function
 '''
 
 
+def init_indicator(small_market):
+    # init vars:
+    small_candles = small_market.ohlcv
+    indicator_plot = []
+    peak_indicator = small_candles[1][4]
+    indicator_plot.append([small_candles[1][0], small_candles[1][4]])
+
+    # strategy:
+    for i in range(1, len(small_candles)):
+        if i % 200 == 0:
+            peak_indicator = (peak_indicator + small_candles[i][4]) / 2
+            indicator_plot.append([small_candles[i][0], peak_indicator])
+    small_market.indicator_counter = len(small_candles)
+    small_market.indicator_arr = indicator_plot
+
+
 def real_time_trading(small_market, big_market, trading_window, gap):
 
     while True:
         now = datetime.utcnow().replace(second=0, microsecond=0)
         # if it is xx:00 o'clock, get the last candle
+        # Plot:
+        #plot_data(big_market, small_market, gap, buy_signals, sell_signals)
 
         if True:
         #if now.minute == 0:
@@ -124,12 +167,15 @@ def real_time_trading(small_market, big_market, trading_window, gap):
 
             # calculate the moving average of this point
             add_ma_point(big_market, constant.SIMPLE, 20)
-            plot_data(big_market, small_market, 0)
 
             # activate the algorithm
-            buy_signals, sell_signals, indicator_plot = strategy(small_market, big_market, gap)
+            buy_signals, sell_signals = strategy(small_market, big_market, gap)
+
+            # Plot:
+            plot_data(big_market, small_market, gap, buy_signals, sell_signals)
 
             print("test")
+            time.sleep(30)
 
 '''
 Get candles
@@ -149,6 +195,8 @@ def get_candles(small_market, big_market, trading_window):
     for j in range(0, len(big_ohlcv)):
         big_market.ohlcv.append(big_ohlcv[j])
         small_market.ohlcv.append(small_ohlcv[j])
+
+
 
 
 '''
@@ -193,16 +241,26 @@ Get the gap between the two markets
 '''
 
 
-def get_previous_data(small_market, big_market):
+def get_previous_data(small_market, big_market, days):
 
     # set trading window
     now = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
-    now_minus = now.replace(hour=now.hour - 1) - timedelta(days=10)
-    trading_window = TradingWindow.TradingWindow(start_time=str(now_minus),
-                                                 candle_time_frame='1h', candles_num=constant.HOURS_IN_10D)
 
-    # get candles of last 10 days for moving average calculation and plotting
-    get_candles(small_market, big_market, trading_window)
+    now_minus = now.replace(hour=now.hour - 1) - timedelta(days=days)
+    candles_num = days*constant.HOURS_IN_DAY
+    trading_window = TradingWindow.TradingWindow(start_time=str(now_minus),
+                                                 candle_time_frame='1h', candles_num=constant.HOURS_IN_DAY)
+    print(trading_window.start_time)
+    for i in range(0, days):
+        # extract candles
+
+        # get candles of last 10 days for moving average calculation and plotting
+        get_candles(small_market, big_market, trading_window)
+
+        if i != (days - 1):
+            # continue to the next week
+            trading_window.add_day()
+            print(trading_window.start_time)
 
     # debug prints
     print("Collecting data starting from: " + small_market.exchange.iso8601(big_market.ohlcv[0][0]))
@@ -213,11 +271,11 @@ def get_previous_data(small_market, big_market):
 
     # calculate moving average for plotting
     calc_ma(big_market, constant.SIMPLE, 20)
-    plot_data(big_market, small_market, gap)
+    #plot_data(big_market, small_market, gap)
 
     # set trading window to single candle
     trading_window.set_candles_num(new_candles_num=1)
-
+    init_indicator(small_market)
     return trading_window, gap
 
 
@@ -236,8 +294,9 @@ def run_real_time():
     small_market = Market("bitfinex")
     big_market = Market("binance")
 
+    days = 100
     # Get data of the last 10 days for moving average curve
-    trading_window, gap = get_previous_data(small_market, big_market)
+    trading_window, gap = get_previous_data(small_market, big_market, days)
 
     # Perform real time trading
     real_time_trading(small_market, big_market, trading_window, gap)
