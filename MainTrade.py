@@ -91,7 +91,7 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
 
     # init vars:
     small_candles = small_market.ohlcv
-    difference = 1.2  # difference between big market's MA and small market in percentage
+    difference = 1.10  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
     indicator_plot = []
@@ -194,7 +194,7 @@ The running function
 def run(wallet):
 
     # Initialize wallet and big and small markets
-    wallet.add_asset('USD', 500)
+    wallet.add_asset('USD', 350)
     wallet.add_asset('BTC', 0.01)
     small_market = Market("bitfinex")
     big_market = Market("binance")

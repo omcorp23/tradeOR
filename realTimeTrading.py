@@ -88,7 +88,7 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
     # init vars:
     small_market.indicator_counter += 1
     small_candles = small_market.ohlcv
-    difference = 1.2  # difference between big market's MA and small market in percentage
+    difference = 1.05  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
     above_ma = False
@@ -110,6 +110,8 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
+                # perform transaction
+                wallet.transaction(base_id='USD', quote_id='BTC', base_amount=100, ratio=1 / small_candles[i][4])
                 funcs.add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
             above_ma = True
         elif big_market.ma_curve[i] > (small_candles[i][4] - gap):
@@ -119,8 +121,13 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
                     # Sell!
                     matching_buy = funcs.pop_buy(open_buys_prices, id)
                     trades.append([matching_buy, small_candles[i][4]])
+                    amount_to_sell = 100 / matching_buy
                     open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
+                    # perform transaction
+                    wallet.transaction(base_id='BTC', quote_id='USD', base_amount=amount_to_sell,
+                                       ratio=small_candles[i][4])
+                    wallet.print_status()
             above_ma = False
     funcs.calculate_profit(trades)
     return buy_signals, sell_signals
@@ -174,8 +181,8 @@ def real_time_trading(small_market, big_market, trading_window, gap, wallet):
             # Plot:
             plot_data(big_market, small_market, gap, buy_signals, sell_signals)
 
-            print("test")
-            time.sleep(30)
+            print("go to sleep for 59 minutes")
+            time.sleep(3540)
 
 '''
 Get candles
@@ -288,7 +295,8 @@ def run_real_time():
 
     # Initialize wallet
     wallet = Wallet()
-    wallet.add_asset('USD', 100)
+    wallet.add_asset('USD', 350)
+    wallet.add_asset('BTC', 0.01)
 
     # Initialize big and small markets
     small_market = Market("bitfinex")

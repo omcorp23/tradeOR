@@ -38,7 +38,7 @@ class Wallet:
 
         # sell all
         if base_amount == 'all':
-            base_amount = self.assets[base_id] - self.assets[base_id]*fee_percentage
+            base_amount = self.assets[base_id] - self.assets[base_id]*fee_percentage - 0.01
 
         # check how much we have in base
         if base_id in self.assets.keys():
