@@ -83,7 +83,7 @@ Strategy function
 '''
 
 
-def strategy(small_market, big_market, gap, num_of_buys=3):
+def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
 
     # init vars:
     small_market.indicator_counter += 1
@@ -147,7 +147,7 @@ def init_indicator(small_market):
     small_market.indicator_arr = indicator_plot
 
 
-def real_time_trading(small_market, big_market, trading_window, gap):
+def real_time_trading(small_market, big_market, trading_window, gap, wallet):
 
     while True:
         now = datetime.utcnow().replace(second=0, microsecond=0)
@@ -159,7 +159,7 @@ def real_time_trading(small_market, big_market, trading_window, gap):
         #if now.minute == 0:
 
             # get the candle of the last hour
-            new_start_time = str(now.replace(hour=now.hour - 1, minute=0, second=0, microsecond=0))
+            new_start_time = str(now.replace(hour=(now.hour - 1) % constant.HOURS_IN_DAY, minute=0, second=0, microsecond=0))
             trading_window.set_start_time(new_start_time=new_start_time)
 
             # add candle of this point
@@ -169,7 +169,7 @@ def real_time_trading(small_market, big_market, trading_window, gap):
             add_ma_point(big_market, constant.SIMPLE, 20)
 
             # activate the algorithm
-            buy_signals, sell_signals = strategy(small_market, big_market, gap)
+            buy_signals, sell_signals = strategy(small_market, big_market, gap, wallet)
 
             # Plot:
             plot_data(big_market, small_market, gap, buy_signals, sell_signals)
@@ -299,8 +299,9 @@ def run_real_time():
     trading_window, gap = get_previous_data(small_market, big_market, days)
 
     # Perform real time trading
-    real_time_trading(small_market, big_market, trading_window, gap)
+    real_time_trading(small_market, big_market, trading_window, gap, wallet)
 
 
 if __name__ == "__main__":
     run_real_time()
+
