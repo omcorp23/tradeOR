@@ -112,6 +112,7 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
                 # perform transaction
                 wallet.transaction(base_id='USD', quote_id='BTC', base_amount=100, ratio=1 / small_candles[i][4])
+                wallet.print_status()
                 funcs.add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
             above_ma = True
         elif big_market.ma_curve[i] > (small_candles[i][4] - gap):
