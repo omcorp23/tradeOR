@@ -3,7 +3,7 @@ define constants
 """
 
 # time for candles
-WEEKS_NUM = 70
+WEEKS_NUM = 78
 HOURS_IN_WEEK = 168
 HOURS_IN_DAY = 24
 
