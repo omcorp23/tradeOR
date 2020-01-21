@@ -157,18 +157,17 @@ def init_indicator(small_market):
 
 def real_time_trading(small_market, big_market, trading_window, gap, wallet):
 
+    print("started real time loop")
     while True:
         now = datetime.utcnow().replace(second=0, microsecond=0)
         # if it is xx:00 o'clock, get the last candle
-        # Plot:
-        #plot_data(big_market, small_market, gap, buy_signals, sell_signals)
-
-        if True:
-        #if now.minute == 0:
+        #if True:
+        if now.minute == 0:
 
             # get the candle of the last hour
-            new_start_time = str(now.replace(hour=(now.hour - 1) % constant.HOURS_IN_DAY, minute=0, second=0, microsecond=0))
-            trading_window.set_start_time(new_start_time=new_start_time)
+            new_start_time = now.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
+            print("current time is: " + str(datetime.utcnow().replace(microsecond=0)) + ". start real time for " + str(new_start_time))
+            trading_window.set_start_time(new_start_time=str(new_start_time))
 
             # add candle of this point
             get_candles(small_market, big_market, trading_window)
@@ -182,8 +181,9 @@ def real_time_trading(small_market, big_market, trading_window, gap, wallet):
             # Plot:
             plot_data(big_market, small_market, gap, buy_signals, sell_signals)
 
-            print("go to sleep for 59 minutes")
-            time.sleep(3540)
+            print("end real time at: " + str(datetime.utcnow().replace(microsecond=0)) + ". go to sleep for 58 minutes")
+            time.sleep(3480)
+            print("woke up from sleep in: " + str(datetime.utcnow().replace(microsecond=0)))
 
 '''
 Get candles
@@ -249,26 +249,27 @@ Get the gap between the two markets
 '''
 
 
-def get_previous_data(small_market, big_market, days):
+def get_previous_data(small_market, big_market, weeks_num=15):
 
     # set trading window
     now = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
-
-    now_minus = now.replace(hour=now.hour - 1) - timedelta(days=days)
-    candles_num = days*constant.HOURS_IN_DAY
+    now_minus = now - timedelta(weeks=weeks_num)
     trading_window = TradingWindow.TradingWindow(start_time=str(now_minus),
-                                                 candle_time_frame='1h', candles_num=constant.HOURS_IN_DAY)
+                                                 candle_time_frame='1h', candles_num=constant.HOURS_IN_WEEK)
     print(trading_window.start_time)
-    for i in range(0, days):
-        # extract candles
-
-        # get candles of last 10 days for moving average calculation and plotting
+    for i in range(0, weeks_num):
         get_candles(small_market, big_market, trading_window)
+        # continue to the next week
+        trading_window.add_week()
+        print(trading_window.start_time)
 
-        if i != (days - 1):
-            # continue to the next week
-            trading_window.add_day()
-            print(trading_window.start_time)
+    # debug prints
+    print("Collecting data starting from: " + small_market.exchange.iso8601(big_market.ohlcv[0][0]))
+    print("Until: " + small_market.exchange.iso8601(big_market.ohlcv[-1][0]))
+
+    # get candle of the last hour
+    trading_window.set_candles_num(new_candles_num=1)
+    #get_candles(small_market, big_market, trading_window)
 
     # debug prints
     print("Collecting data starting from: " + small_market.exchange.iso8601(big_market.ohlcv[0][0]))
@@ -282,7 +283,6 @@ def get_previous_data(small_market, big_market, days):
     #plot_data(big_market, small_market, gap)
 
     # set trading window to single candle
-    trading_window.set_candles_num(new_candles_num=1)
     init_indicator(small_market)
     return trading_window, gap
 
@@ -293,7 +293,6 @@ Main function
 
 
 def run_real_time():
-
     # Initialize wallet
     wallet = Wallet()
     wallet.add_asset('USD', 350)
@@ -303,9 +302,10 @@ def run_real_time():
     small_market = Market("bitfinex")
     big_market = Market("binance")
 
-    days = 100
     # Get data of the last 10 days for moving average curve
-    trading_window, gap = get_previous_data(small_market, big_market, days)
+    print("get previous data STARTS at: " + str(datetime.utcnow().replace(microsecond=0)))
+    trading_window, gap = get_previous_data(small_market, big_market)
+    print("get previous data ENDS at: " + str(datetime.utcnow().replace(microsecond=0)))
 
     # Perform real time trading
     real_time_trading(small_market, big_market, trading_window, gap, wallet)
