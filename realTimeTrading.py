@@ -173,7 +173,7 @@ def real_time_trading(small_market, big_market, trading_window, gap, wallet):
             get_candles(small_market, big_market, trading_window)
 
             # calculate the moving average of this point
-            add_ma_point(big_market, constant.SIMPLE, 20)
+            add_ma_point(big_market, constant.SIMPLE)
 
             # activate the algorithm
             buy_signals, sell_signals = strategy(small_market, big_market, gap, wallet)
@@ -212,7 +212,7 @@ Calculation of the moving average
 '''
 
 
-def calc_ma(big_market, ma_type, ma_speed):
+def calc_ma(big_market, ma_type, ma_speed=100):
     # calculate fast and slow simple moving averages of the big market
     if ma_type == constant.SMOOTHED:
         big_market.ma_fast = smoothed_ma([item[4] for item in big_market.ohlcv], ma_speed)
@@ -223,7 +223,7 @@ def calc_ma(big_market, ma_type, ma_speed):
         big_market.ma_fast = exponential_ma([item[4] for item in big_market.ohlcv], ma_speed)
 
 
-def add_ma_point(big_market, ma_type, ma_speed):
+def add_ma_point(big_market, ma_type, ma_speed=100):
     # calculate fast and slow simple moving averages of the big market
     if ma_type == constant.SIMPLE:
         ma_tmp = simple_ma([item[4] for item in big_market.ohlcv[-ma_speed:]], ma_speed)
@@ -279,7 +279,7 @@ def get_previous_data(small_market, big_market, weeks_num=15):
     gap = calc_gap(small_market, big_market)
 
     # calculate moving average for plotting
-    calc_ma(big_market, constant.SIMPLE, 20)
+    calc_ma(big_market, constant.SIMPLE)
     #plot_data(big_market, small_market, gap)
 
     # set trading window to single candle
