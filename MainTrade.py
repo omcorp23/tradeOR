@@ -9,6 +9,8 @@ from pyti.smoothed_moving_average import smoothed_moving_average as smoothed_ma
 from pyti.exponential_moving_average import exponential_moving_average as exponential_ma
 import constant
 import helperFunctions as funcs
+import dateutil
+from datetime import datetime
 import pandas as pd
 
 # TODO General:
@@ -87,11 +89,11 @@ Strategy function
 '''
 
 
-def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
+def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys=3):
 
     # init vars:
     small_candles = small_market.ohlcv
-    difference = 1.10  # difference between big market's MA and small market in percentage
+    difference = constant.PROFIT_PREC  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
     indicator_plot = []
@@ -110,8 +112,10 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
         if i % 200 == 0:
             peak_indicator = (peak_indicator + small_candles[i][4]) / 2
             indicator_plot.append([small_candles[i][0], peak_indicator])
+
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
-            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator):
+            curr_date = dateutil.parser.parse(datetime.fromtimestamp(small_candles[i][0] / 1000).isoformat())
+            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator) and (date_to_start <= curr_date):
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
@@ -200,7 +204,7 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2018-07-10 00:00:00', candle_time_frame='1h',
+    trading_window = TradingWindow.TradingWindow(start_time='2019-05-10 00:00:00', candle_time_frame='1h',
                                                  candles_num=1000)
 
     # Get attractive coins to trade with
@@ -216,7 +220,7 @@ def run(wallet):
     calc_ma(big_market, constant.SIMPLE, 100)
 
     # Find buy and sell points
-    buy_signals, sell_signals, indicator_plot = strategy(small_market, big_market, gap, wallet)
+    buy_signals, sell_signals, indicator_plot = strategy(small_market, big_market, gap, constant.DATE_START_TRADE, wallet)
 
     # Plot data in graph
     plot_data_for_prediction(big_market, small_market, gap, buy_signals, sell_signals, indicator_plot)
