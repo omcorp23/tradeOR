@@ -11,7 +11,7 @@ myKeys = {
     "API_secret": "4d539fe0-e3b0-4e4e-7c86-70b36aa93d4f"
   },
   "bitfinex": {
-    "API_key": "",
-    "API_secret": ""
+    "API_key": "z1B7nLF5cl0Tb1xI4Pyzkkmceb1CpSQf0FPnlp3naxA",
+    "API_secret": "hw1iuKpi2va1gCZ5mNoQqcX30zV9n2Qji6EFJVn593R"
   }
 }
