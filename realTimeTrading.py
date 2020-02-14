@@ -83,29 +83,62 @@ Strategy function
 '''
 
 
-def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
+def trade_from_ob(wallet_ob, small_market, amount_to_sell,buy):
+    order_book = small_market.exchange.fetch_order_book('BTC/USD', 20)
+
+    # Buy signal:
+    asks = order_book['asks']
+    bids = order_book['bids']
+    quantity_bought = 0
+    if buy:
+        money_left = constant.MAX_BUDGET_PER_BUY
+        cash = wallet_ob.assets['USD']
+        for i in range(0, constant.ORDER_BOOK_DEPTH):
+            price = asks[i][0] * asks[i][1]
+            if price <= money_left and price < cash:
+                logging.info("ratio: " + str(asks[i][0]) + " and price: " + str(price))
+                wallet_ob.transaction(base_id='USD', quote_id='BTC', base_amount=price, ratio=1 / asks[i][0])
+                money_left -= price
+                quantity_bought += asks[i][1]
+        logging.info("total spent on this buy point: " + str(constant.MAX_BUDGET_PER_BUY - money_left))
+    else:
+        money_left = amount_to_sell
+        cash = wallet_ob.assets['BTC']
+        for i in range(0, constant.ORDER_BOOK_DEPTH):
+            price = bids[i][0] * bids[i][1]
+            if bids[i][1] <= money_left and bids[i][1] <= cash:
+                logging.info("ratio: " + str(bids[i][0]) + " and price: " + str(price))
+                wallet_ob.transaction(base_id='BTC', quote_id='USD', base_amount=bids[i][1], ratio=1 / bids[i][0])
+                money_left -= bids[i][1]
+        logging.info("total sold: " + str(amount_to_sell - money_left))
+    return quantity_bought
+
+
+
+
+
+def strategy(small_market, big_market, gap, wallet, wallet_ob):
 
     # init vars:
     small_market.indicator_counter += 1
     small_candles = small_market.ohlcv
-    difference = 1.05  # difference between big market's MA and small market in percentage
     buy_signals = []
     sell_signals = []
     above_ma = False
     open_buys = 0
     trade_id = 0
     trades = []
-    open_buys_prices = funcs.init_open_buys(num_of_buys)
+    open_buys_prices = funcs.init_open_buys(constant.NUM_OF_BUYS)
     if big_market.ma_fast[0] < (small_candles[0][4] - gap):
         above_ma = True
 
     # strategy:
     for i in range(len(small_candles) - 1, len(small_candles)):
-        if small_market.indicator_counter % 200 == 0:
+        if small_market.indicator_counter % constant.INDICATOR_SENSITIVITY == 0:
             peak_indicator = (small_market.indicator_arr[-1][1] + small_candles[i][4]) / 2
             small_market.indicator_arr.append([small_candles[i][0], peak_indicator])
-        if big_market.ma_curve[i] < (small_candles[i][4] - gap):
-            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < small_market.indicator_arr[-1][1]):
+        if True or big_market.ma_curve[i] < (small_candles[i][4] - gap):
+            if True or ((not above_ma) and (open_buys < constant.NUM_OF_BUYS) and (small_candles[i][4] < small_market.indicator_arr[-1][1])):
                 # Buy!
                 open_buys += 1
                 trade_id += 1
@@ -113,18 +146,20 @@ def strategy(small_market, big_market, gap, wallet, num_of_buys=3):
                 # perform transaction
                 wallet.transaction(base_id='USD', quote_id='BTC', base_amount=100, ratio=1 / small_candles[i][4])
                 wallet.print_status()
-                funcs.add_open_buy(small_candles[i][4], open_buys_prices, trade_id)
+                amount_bought = trade_from_ob(wallet_ob, small_market,amount_to_sell=0, buy=True)
+                funcs.add_open_buy(small_candles[i][4], open_buys_prices, amount_bought, trade_id)
             above_ma = True
-        elif big_market.ma_curve[i] > (small_candles[i][4] - gap):
-            if above_ma and (open_buys > 0):
-                id = funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
+        elif True or big_market.ma_curve[i] > (small_candles[i][4] - gap):
+            if True or (above_ma and (open_buys > 0)):
+                id = funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, constant.PROFIT_PREC)
                 if (id != -1):
                     # Sell!
                     matching_buy = funcs.pop_buy(open_buys_prices, id)
-                    trades.append([matching_buy, small_candles[i][4]])
+                    trades.append([matching_buy[0], small_candles[i][4]])
                     amount_to_sell = 100 / matching_buy
                     open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
+                    trade_from_ob(wallet_ob, small_market, matching_buy[2], buy=False)
                     # perform transaction
                     wallet.transaction(base_id='BTC', quote_id='USD', base_amount=amount_to_sell,
                                        ratio=small_candles[i][4])
@@ -155,14 +190,14 @@ def init_indicator(small_market):
     small_market.indicator_arr = indicator_plot
 
 
-def real_time_trading(small_market, big_market, trading_window, gap, wallet):
+def real_time_trading(small_market, big_market, trading_window, gap, wallet, wallet_ob):
 
     print("started real time loop")
     while True:
         now = datetime.utcnow().replace(second=0, microsecond=0)
         # if it is xx:00 o'clock, get the last candle
         #if True:
-        if now.minute == 0:
+        if now.minute == 49:
 
             # get the candle of the last hour
             new_start_time = now.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
@@ -176,7 +211,7 @@ def real_time_trading(small_market, big_market, trading_window, gap, wallet):
             add_ma_point(big_market, constant.SIMPLE)
 
             # activate the algorithm
-            buy_signals, sell_signals = strategy(small_market, big_market, gap, wallet)
+            buy_signals, sell_signals = strategy(small_market, big_market, gap, wallet, wallet_ob)
 
             # Plot:
             plot_data(big_market, small_market, gap, buy_signals, sell_signals)
@@ -293,22 +328,61 @@ Main function
 
 
 def run_real_time():
+    logging.basicConfig(filename='transaction.log', level=logging.DEBUG, filemode='w',
+                                 format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Initialize wallet
     wallet = Wallet()
-    wallet.add_asset('USD', 350)
-    wallet.add_asset('BTC', 0.01)
+    wallet.add_asset('USD', constant.MAX_BUDGET_PER_BUY * constant.NUM_OF_BUYS)
+    wallet.add_asset('BTC', constant.BITCOIN_FOR_FEES)
+
+    wallet_ob = Wallet()
+    wallet_ob.add_asset('USD', constant.MAX_BUDGET_PER_BUY * constant.NUM_OF_BUYS)
+    wallet_ob.add_asset('BTC', constant.BITCOIN_FOR_FEES)
 
     # Initialize big and small markets
     small_market = Market("bitfinex")
     big_market = Market("binance")
 
+    '''
+    #### test for order book trading ####
+
+    now = datetime.utcnow().replace(second=0, microsecond=0)
+    new_start_time = now.replace(second=0, microsecond=0) - timedelta(hours=1)
+    trading_window = TradingWindow.TradingWindow(start_time=str(new_start_time),
+                                                 candle_time_frame='1h', candles_num=1)
+
+    print("current time is: " + str(datetime.utcnow().replace(microsecond=0)) + ". start real time for " + str(
+        new_start_time))
+    trading_window.set_start_time(new_start_time=str(new_start_time))
+    get_candles(small_market, big_market, trading_window)
+    order_book = small_market.exchange.fetch_order_book('BTC/USD', 20)
+
+    # Buy signal:
+    asks = order_book['asks']
+    cash = wallet.assets['USD']
+    price = 0
+    money_left = constant.MAX_BUDGET_PER_BUY
+    for i in range(0, constant.ORDER_BOOK_DEPTH):
+        price = asks[i][0]*asks[i][1]
+        if price <= money_left and price < cash:
+            logging.info("ratio: " + asks[i][0] + " and price: " + price)
+            wallet_ob.transaction(base_id='USD', quote_id='BTC', base_amount=price, ratio=1/asks[i][0])
+            money_left -= price
+    logging.info("total spent on this buy point: " + constant.MAX_BUDGET_PER_BUY - money_left)
+'''
+
+
+
+
+
+
     # Get data of the last 10 days for moving average curve
     print("get previous data STARTS at: " + str(datetime.utcnow().replace(microsecond=0)))
     trading_window, gap = get_previous_data(small_market, big_market)
     print("get previous data ENDS at: " + str(datetime.utcnow().replace(microsecond=0)))
-
     # Perform real time trading
-    real_time_trading(small_market, big_market, trading_window, gap, wallet)
+    real_time_trading(small_market, big_market, trading_window, gap, wallet, wallet_ob)
 
 
 if __name__ == "__main__":

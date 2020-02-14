@@ -24,3 +24,6 @@ class Market(object):
         self.ma_fast = None
         self.ma_slow = None
         self.ma_curve = None
+    def get_orderbook(self):
+        if (self.exchange.has['fetchOrderBook'] == True):
+            self.exchange.fetch_transactions()

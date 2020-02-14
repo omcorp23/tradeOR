@@ -13,22 +13,22 @@ def get_id_if_sell(price, open_buys_prices, difference):
 def pop_buy(open_buys_prices, id):
     for i in range(0, len(open_buys_prices)):
         if open_buys_prices[i][1] == id:
-            price = open_buys_prices[i][0]
-            open_buys_prices[i] = [-1, 0]
+            price = open_buys_prices[i]
+            open_buys_prices[i] = [-1, 0, 0]
     return price
 
 
-def add_open_buy(price, open_buys_prices, trade_id):
+def add_open_buy(price, open_buys_prices, amount_bids, trade_id):
     for j in range(0, len(open_buys_prices)):  # Insert buy to open_buys
         if open_buys_prices[j][0] == -1:
-            open_buys_prices[j] = [price, trade_id]
+            open_buys_prices[j] = [price, trade_id, amount_bids]
             break
 
 
 def init_open_buys(num_of_buys):
     a = []
     for j in range(0, num_of_buys):
-        a.append([-1, 0])
+        a.append([-1, 0, 0])
     return a
 
 

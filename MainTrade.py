@@ -109,7 +109,7 @@ def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys=3
 
     # strategy:
     for i in range(1, len(small_candles)):
-        if i % 200 == 0:
+        if i % constant.INDICATOR_SENSITIVITY == 0:
             peak_indicator = (peak_indicator + small_candles[i][4]) / 2
             indicator_plot.append([small_candles[i][0], peak_indicator])
 
@@ -190,6 +190,7 @@ def get_candles(small_market, big_market, trading_window):
         trading_window.add_week()
 
 
+
 '''
 The running function
 '''
@@ -204,7 +205,7 @@ def run(wallet):
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2019-05-10 00:00:00', candle_time_frame='1h',
+    trading_window = TradingWindow.TradingWindow(start_time='2019-05-08 00:00:00', candle_time_frame='1h',
                                                  candles_num=1000)
 
     # Get attractive coins to trade with
