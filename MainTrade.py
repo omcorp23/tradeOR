@@ -8,10 +8,9 @@ from pyti.simple_moving_average import simple_moving_average as simple_ma
 from pyti.smoothed_moving_average import smoothed_moving_average as smoothed_ma
 from pyti.exponential_moving_average import exponential_moving_average as exponential_ma
 import constant
-import helperFunctions as funcs
+import oldHelperFunctions as funcs
 import dateutil
 from datetime import datetime
-import pandas as pd
 
 # TODO General:
 # 1) add option to run in real-time - IN PROCESS
@@ -44,13 +43,13 @@ def plot_data_for_prediction(big_market, small_market, gap, buy_signals, sell_si
         x=[big_market.exchange.iso8601(item[0]) for item in big_market.ohlcv],
         y=big_market.ma_fast,
         name="Fast SMA - big",
-        line=dict(color=('rgba(102, 207, 255, 50)')))
+        line=dict(color='rgba(102, 207, 255, 50)'))
 
     ssma = go.Scatter(
         x=[big_market.exchange.iso8601(item[0]) for item in big_market.ohlcv],
         y=big_market.ma_slow,
         name="Slow SMA - big",
-        line=dict(color=('rgba(255, 207, 102, 50)')))
+        line=dict(color='rgba(255, 207, 102, 50)'))
 
     # define buys and sells points for plotting
     buys = go.Scatter(
@@ -74,7 +73,7 @@ def plot_data_for_prediction(big_market, small_market, gap, buy_signals, sell_si
         x=[item[0] for item in indicator_plot],
         y=[item[1] for item in indicator_plot],
         name="indicator",
-        line=dict(color=('rgba(34, 90, 200, 50)')),
+        line=dict(color='rgba(34, 90, 200, 50)'),
     )
 
     # style and display
@@ -89,7 +88,7 @@ Strategy function
 '''
 
 
-def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys=3):
+def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys = constant.NUM_OF_BUYS):
 
     # init vars:
     small_candles = small_market.ohlcv
@@ -115,7 +114,8 @@ def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys=3
 
         if big_market.ma_fast[i] < (small_candles[i][4] - gap):
             curr_date = dateutil.parser.parse(datetime.fromtimestamp(small_candles[i][0] / 1000).isoformat())
-            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator) and (date_to_start <= curr_date):
+            if (not above_ma) and (open_buys < num_of_buys) and (small_candles[i][4] < peak_indicator) and \
+                    (date_to_start <= curr_date):
                 open_buys += 1
                 trade_id += 1
                 buy_signals.append([small_candles[i][0], small_candles[i][4]])
@@ -127,14 +127,15 @@ def strategy(small_market, big_market, gap, date_to_start, wallet, num_of_buys=3
         elif big_market.ma_fast[i] > (small_candles[i][4] - gap):
             if above_ma and (open_buys > 0):
                 id = funcs.get_id_if_sell(small_candles[i][4], open_buys_prices, difference)
-                if (id != -1):
+                if id != -1:
                     matching_buy = funcs.pop_buy(open_buys_prices, id)
                     trades.append([matching_buy, small_candles[i][4]])
                     amount_to_sell = 100/matching_buy
                     open_buys -= 1
                     sell_signals.append([small_candles[i][0], small_candles[i][4]])
                     # perform transaction
-                    wallet.transaction(base_id='BTC', quote_id='USD', base_amount=amount_to_sell, ratio=small_candles[i][4])
+                    wallet.transaction(base_id='BTC', quote_id='USD', base_amount=amount_to_sell,
+                                       ratio=small_candles[i][4])
                     wallet.print_status()
             above_ma = False
     funcs.calculate_profit(trades)
@@ -168,6 +169,7 @@ def calc_gap(small_market, big_market):
     gap = sum(sub) / len(sub)
     return gap
 
+
 '''
 Get candles of small and big markets.
 '''
@@ -190,7 +192,6 @@ def get_candles(small_market, big_market, trading_window):
         trading_window.add_week()
 
 
-
 '''
 The running function
 '''
@@ -199,13 +200,13 @@ The running function
 def run(wallet):
 
     # Initialize wallet and big and small markets
-    wallet.add_asset('USD', 350)
+    wallet.add_asset('USD', 800)
     wallet.add_asset('BTC', 0.01)
     small_market = Market("bitfinex")
     big_market = Market("binance")
 
     # Set the trading window and candle times
-    trading_window = TradingWindow.TradingWindow(start_time='2019-05-08 00:00:00', candle_time_frame='1h',
+    trading_window = TradingWindow.TradingWindow(start_time='2018-05-08 00:00:00', candle_time_frame='1h',
                                                  candles_num=1000)
 
     # Get attractive coins to trade with
